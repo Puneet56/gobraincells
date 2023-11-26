@@ -1,5 +1,7 @@
 package main
 
+import "gobraincells/gates"
+
 func main() {
-	gate()
+	gates.OrGate()
 }

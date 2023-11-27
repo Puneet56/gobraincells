@@ -72,8 +72,17 @@ func (m *Matrix) GetRow(row int) Matrix {
 	return r
 }
 
-func (m *Matrix) Print() {
+func (m *Matrix) SetRow(row int, data Matrix) {
+	if data.Cols != m.Cols {
+		panic("data cols must be the same as matrix cols")
+	}
 
+	for i := 0; i < m.Cols; i++ {
+		m.Set(row, i, data.Get(0, i))
+	}
+}
+
+func (m *Matrix) Print() {
 	fmt.Println("[")
 
 	for i := 0; i < m.Rows; i++ {
@@ -130,6 +139,7 @@ func Multiply(left Matrix, right Matrix) Matrix {
 			m.Set(i, j, sum)
 		}
 	}
+
 	return m
 }
 

@@ -2,13 +2,10 @@ package gates
 
 import (
 	"fmt"
-	"math"
+	"gobraincells/activation"
+	"gobraincells/matrix"
 	"math/rand"
 )
-
-func Sigmoid(x float64) float64 {
-	return 1 / (1 + math.Exp(-x))
-}
 
 var or_data = [][]float64{{0, 0, 0}, {0, 1, 1}, {1, 0, 1}, {1, 1, 1}}
 
@@ -52,7 +49,7 @@ func gate(data [][]float64) {
 	fmt.Println("----------FINAL RESULTS-----------")
 
 	for _, d := range data {
-		fmt.Printf("  %f  |  %f  |  %f\n", d[0], d[1], Sigmoid(d[0]*w1+d[1]*w2+b))
+		fmt.Printf("  %f  |  %f  |  %f\n", d[0], d[1], activation.Sigmoid(d[0]*w1+d[1]*w2+b))
 	}
 }
 
@@ -61,7 +58,7 @@ func cost_gate(data [][]float64, w1 float64, w2 float64, b float64) float64 {
 	for _, d := range data {
 		x1 := d[0]
 		x2 := d[1]
-		y := Sigmoid(x1*w1 + x2*w2 + b)
+		y := activation.Sigmoid(x1*w1 + x2*w2 + b)
 
 		dw := y - d[2]
 		result += dw * dw
@@ -70,4 +67,142 @@ func cost_gate(data [][]float64, w1 float64, w2 float64, b float64) float64 {
 	result = result / float64(len(data))
 
 	return result
+}
+
+func XorGate() {
+	// xor
+	// [
+	// 	[0, 0],
+	// 	[0, 1],
+	// 	[1, 0],
+	// 	[1, 1]
+	// ]
+	a0 := matrix.New(4, 2, false)
+	a0.Set(0, 0, 0)
+	a0.Set(0, 0, 0)
+	a0.Set(1, 0, 0)
+	a0.Set(1, 1, 1)
+	a0.Set(2, 0, 1)
+	a0.Set(2, 1, 0)
+	a0.Set(3, 0, 1)
+	a0.Set(3, 1, 1)
+
+	// [
+	// 	[0],
+	// 	[1],
+	// 	[1],
+	// 	[0]
+	// ]
+	expected := matrix.New(4, 1, false)
+	expected.Set(0, 0, 0)
+	expected.Set(1, 0, 1)
+	expected.Set(2, 0, 1)
+	expected.Set(3, 0, 0)
+
+	w1 := matrix.New(2, 2, true)
+	b1 := matrix.New(1, 2, false)
+
+	w2 := matrix.New(2, 1, true)
+	b2 := matrix.New(1, 1, false)
+
+	eps := 1e-1
+	lr := 1e-1
+
+	for i := 0; i < 100000; i++ {
+		w1g := matrix.New(w1.Rows, w1.Cols, false)
+		for j := 0; j < w1.Rows; j++ {
+			for k := 0; k < w1.Cols; k++ {
+				s := w1.Get(j, k)
+				w1.Set(j, k, s+eps)
+				c1 := forward_xor(a0, expected, w1, b1, w2, b2)
+				w1.Set(j, k, s-eps)
+				c2 := forward_xor(a0, expected, w1, b1, w2, b2)
+				w1.Set(j, k, s)
+				w1g.Set(j, k, (c1-c2)/(2*eps))
+			}
+		}
+
+		b1g := matrix.New(b1.Rows, b1.Cols, false)
+		for j := 0; j < b1.Rows; j++ {
+			for k := 0; k < b1.Cols; k++ {
+				s := b1.Get(j, k)
+				b1.Set(j, k, s+eps)
+				c1 := forward_xor(a0, expected, w1, b1, w2, b2)
+				b1.Set(j, k, s-eps)
+				c2 := forward_xor(a0, expected, w1, b1, w2, b2)
+				b1.Set(j, k, s)
+				b1g.Set(j, k, (c1-c2)/(2*eps))
+			}
+		}
+
+		w2g := matrix.New(w2.Rows, w2.Cols, false)
+		for j := 0; j < w2.Rows; j++ {
+			for k := 0; k < w2.Cols; k++ {
+				s := w2.Get(j, k)
+				w2.Set(j, k, s+eps)
+				c1 := forward_xor(a0, expected, w1, b1, w2, b2)
+				w2.Set(j, k, s-eps)
+				c2 := forward_xor(a0, expected, w1, b1, w2, b2)
+				w2.Set(j, k, s)
+				w2g.Set(j, k, (c1-c2)/(2*eps))
+			}
+		}
+
+		b2g := matrix.New(b2.Rows, b2.Cols, false)
+		for j := 0; j < b2.Rows; j++ {
+			for k := 0; k < b2.Cols; k++ {
+				s := b2.Get(j, k)
+				b2.Set(j, k, s+eps)
+				c1 := forward_xor(a0, expected, w1, b1, w2, b2)
+				b2.Set(j, k, s-eps)
+				c2 := forward_xor(a0, expected, w1, b1, w2, b2)
+				b2.Set(j, k, s)
+				b2g.Set(j, k, (c1-c2)/(2*eps))
+			}
+		}
+
+		w1g.Apply(func(x float64) float64 { return x * lr })
+		b1g.Apply(func(x float64) float64 { return x * lr })
+		w2g.Apply(func(x float64) float64 { return x * lr })
+		b2g.Apply(func(x float64) float64 { return x * lr })
+
+		w1.Subtract(w1g)
+		b1.Subtract(b1g)
+		w2.Subtract(w2g)
+		b2.Subtract(b2g)
+
+		fmt.Println("cost:", forward_xor(a0, expected, w1, b1, w2, b2))
+	}
+
+	fmt.Println("--------Final--------")
+
+	for i := 0; i < a0.Rows; i++ {
+		a1 := matrix.Multiply(a0.GetRow(i), w1)
+		a1.Add(b1)
+		a1.Apply(activation.Sigmoid)
+
+		a2 := matrix.Multiply(a1, w2)
+		a2.Add(b2)
+		a2.Apply(activation.Sigmoid)
+
+		fmt.Printf("%f  |  %f  |  %f\n", a0.Get(i, 0), a0.Get(i, 1), a2.Get(0, 0))
+	}
+}
+
+func forward_xor(a0, expected, w1, b1, w2, b2 matrix.Matrix) float64 {
+	cost := 0.0
+	for i := 0; i < a0.Rows; i++ {
+		a1 := matrix.Multiply(a0.GetRow(i), w1)
+		a1.Add(b1)
+		a1.Apply(activation.Sigmoid)
+
+		a2 := matrix.Multiply(a1, w2)
+		a2.Add(b2)
+		a2.Apply(activation.Sigmoid)
+
+		d := a2.Get(0, 0) - expected.Get(i, 0)
+
+		cost += d * d
+	}
+	return cost / float64(a0.Rows)
 }

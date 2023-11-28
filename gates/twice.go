@@ -5,7 +5,7 @@ import (
 	"math/rand"
 )
 
-func twice() {
+func Twice() {
 	data := [][]float64{
 		{0, 0},
 		{1, 2},
@@ -13,18 +13,14 @@ func twice() {
 		{3, 6},
 		{4, 8},
 	}
-	w := rand.Float64() * 10
+	w := rand.Float64()
 
-	eps := 1e-3
-	lr := 1e-2
+	lr := 1e-1
 
-	for i := 0; i < 500; i++ {
-		c := cost_twice(data, w)
-
-		dw := (cost_twice(data, w+eps) - c) / eps
-
+	for i := 0; i < 10; i++ {
+		dw := cost_twice(data, w)
 		w -= lr * dw
-		fmt.Printf("cost %f | weight %f\n", c, w)
+		fmt.Printf("cost %f | weight %f\n", cost_twice(data, w), w)
 	}
 
 	fmt.Println("-----------FINAL RESULTS------------")
@@ -38,10 +34,10 @@ func cost_twice(data [][]float64, w float64) float64 {
 	result := 0.0
 	for _, d := range data {
 		x := d[0]
-		y := x * w
+		y := d[1]
 
-		dw := y - d[1]
-		result += dw * dw
+		dw := 2 * (x*w - y) * x
+		result += dw
 	}
 
 	result = result / float64(len(data))

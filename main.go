@@ -1,9 +1,7 @@
 package main
 
-import (
-	"gobraincells/examples"
-)
+import "gobraincells/gates"
 
 func main() {
-	examples.XorGate()
+	gates.Twice()
 }

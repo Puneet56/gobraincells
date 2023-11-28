@@ -14,6 +14,8 @@ type NeuralNetwork struct {
 }
 
 func New(inputs, outputs int, hiddenLayers []int) NeuralNetwork {
+	fmt.Println("Hidden layers: ", len(hiddenLayers))
+
 	nn := NeuralNetwork{
 		inputs:       inputs,
 		outputs:      outputs,
@@ -23,20 +25,27 @@ func New(inputs, outputs int, hiddenLayers []int) NeuralNetwork {
 	nn.Biases = make([]matrix.Matrix, len(hiddenLayers)+1)
 	nn.Weights = make([]matrix.Matrix, len(hiddenLayers)+1)
 
-	if len(hiddenLayers) == 0 {
-		nn.Biases[0] = matrix.New(1, outputs, true)
-		nn.Weights[0] = matrix.New(inputs, hiddenLayers[0], true)
-	} else {
-		nn.Biases[0] = matrix.New(1, hiddenLayers[0], true)
-		nn.Weights[0] = matrix.New(inputs, hiddenLayers[0], true)
-
-		for i := 1; i < len(hiddenLayers); i++ {
-			nn.Biases[i] = matrix.New(1, hiddenLayers[i], true)
-			nn.Weights[i] = matrix.New(hiddenLayers[i-1], hiddenLayers[i], true)
+	if len(hiddenLayers) >= 1 {
+		for _, i := range hiddenLayers {
+			if i <= 0 {
+				panic("hidden layer size should be greater than 0")
+			}
 		}
 
-		nn.Biases[len(hiddenLayers)] = matrix.New(1, outputs, true)
+		nn.Weights[0] = matrix.New(inputs, hiddenLayers[0], true)
+		nn.Biases[0] = matrix.New(1, hiddenLayers[0], true)
+
+		for i := 1; i < len(hiddenLayers); i++ {
+			nn.Weights[i] = matrix.New(hiddenLayers[i-1], hiddenLayers[i], true)
+			nn.Biases[i] = matrix.New(1, hiddenLayers[i], true)
+		}
+
 		nn.Weights[len(hiddenLayers)] = matrix.New(hiddenLayers[len(hiddenLayers)-1], outputs, true)
+		nn.Biases[len(hiddenLayers)] = matrix.New(1, outputs, true)
+	} else {
+		fmt.Println("No hidden layers")
+		nn.Weights[0] = matrix.New(inputs, outputs, true)
+		nn.Biases[0] = matrix.New(1, outputs, true)
 	}
 
 	return nn
@@ -125,23 +134,11 @@ func (nn *NeuralNetwork) Train(inputs, expected matrix.Matrix, epochs int, eps, 
 		fmt.Println("i: ", i, "cost:", nn.Forward(inputs, expected))
 	}
 
-	fmt.Println("--------Final--------")
+	for _, w := range nn.Weights {
+		w.Print()
+	}
 
-	for i := 0; i < inputs.Rows; i++ {
-		output := inputs.GetRow(i)
-
-		for j := 0; j < len(nn.Weights); j++ {
-			output = matrix.Multiply(output, nn.Weights[j])
-
-			b := nn.Biases[j]
-
-			output.Add(b)
-			output.Apply(activation.Sigmoid)
-		}
-
-		fmt.Printf("Expected: %f  |  %f  =  %f  |  %f \n", inputs.Get(i, 0), inputs.Get(i, 1), expected.Get(i, 0), expected.Get(i, 1))
-		fmt.Printf("Output:   %f  |  %f  =  %f  |  %f \n", inputs.Get(i, 0), inputs.Get(i, 1), output.Get(0, 0), output.Get(0, 1))
-
-		fmt.Println()
+	for _, b := range nn.Biases {
+		b.Print()
 	}
 }

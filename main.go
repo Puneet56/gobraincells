@@ -1,7 +1,11 @@
 package main
 
-import "gobraincells/gates"
+import (
+	"gobraincells/neuralnetwork"
+)
 
 func main() {
-	gates.Twice(true)
+	nn := neuralnetwork.New(8, 5, []int{10, 10, 10})
+
+	nn.Visualize()
 }

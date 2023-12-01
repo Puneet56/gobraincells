@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"gobraincells/activation"
 	"gobraincells/matrix"
+	"image/color"
+
+	"github.com/go-p5/p5"
 )
 
 type NeuralNetwork struct {
@@ -14,8 +17,6 @@ type NeuralNetwork struct {
 }
 
 func New(inputs, outputs int, hiddenLayers []int) NeuralNetwork {
-	fmt.Println("Hidden layers: ", len(hiddenLayers))
-
 	nn := NeuralNetwork{
 		inputs:       inputs,
 		outputs:      outputs,
@@ -43,7 +44,6 @@ func New(inputs, outputs int, hiddenLayers []int) NeuralNetwork {
 		nn.Weights[len(hiddenLayers)] = matrix.New(hiddenLayers[len(hiddenLayers)-1], outputs, true)
 		nn.Biases[len(hiddenLayers)] = matrix.New(1, outputs, true)
 	} else {
-		fmt.Println("No hidden layers")
 		nn.Weights[0] = matrix.New(inputs, outputs, true)
 		nn.Biases[0] = matrix.New(1, outputs, true)
 	}
@@ -140,5 +140,73 @@ func (nn *NeuralNetwork) Train(inputs, expected matrix.Matrix, epochs int, eps, 
 
 	for _, b := range nn.Biases {
 		b.Print()
+	}
+}
+
+func (nn *NeuralNetwork) Visualize() {
+	p5.Run(nn.Setup, nn.DrawNetwork)
+}
+
+func (nn *NeuralNetwork) Setup() {
+	p5.Canvas(800, 800)
+	p5.Background(color.Gray{Y: 100})
+}
+
+const (
+	neuronRadius = 20
+	xOffset      = 100
+	yOffset      = 50
+)
+
+func (nn *NeuralNetwork) DrawNetwork() {
+	for i := 0; i < nn.inputs; i++ {
+		for j := 0; j < nn.hiddenLayers[0]; j++ {
+			p5.StrokeWidth(0.5)
+			p5.Stroke(color.White)
+			p5.Line(100, float64(50+yOffset*i), 200, float64(50+yOffset*j))
+		}
+	}
+
+	if len(nn.hiddenLayers) > 1 {
+		for i := 0; i < len(nn.hiddenLayers)-1; i++ {
+			for j := 0; j < nn.hiddenLayers[i]; j++ {
+				for k := 0; k < nn.hiddenLayers[i+1]; k++ {
+					p5.StrokeWidth(0.5)
+					p5.Stroke(color.White)
+					p5.Line(float64(200+xOffset*i), float64(50+yOffset*j), float64(200+xOffset*(i+1)), float64(50+yOffset*k))
+				}
+			}
+		}
+	}
+
+	for i := 0; i < nn.hiddenLayers[len(nn.hiddenLayers)-1]; i++ {
+		for j := 0; j < nn.outputs; j++ {
+			p5.StrokeWidth(0.5)
+			p5.Stroke(color.White)
+			p5.Line(float64(200+xOffset*(len(nn.hiddenLayers)-1)), float64(50+yOffset*i), float64(300+xOffset*(len(nn.hiddenLayers)-1)), float64(50+yOffset*j))
+		}
+	}
+
+	p5.Stroke(color.White)
+	for i := 0; i < nn.inputs; i++ {
+		p5.StrokeWidth(2)
+		p5.Fill(color.RGBA{R: 255, A: 255})
+		p5.Circle(100, float64(50+yOffset*i), neuronRadius)
+	}
+
+	if len(nn.hiddenLayers) > 0 {
+		for i := 0; i < len(nn.hiddenLayers); i++ {
+			for j := 0; j < nn.hiddenLayers[i]; j++ {
+				p5.StrokeWidth(2)
+				p5.Fill(color.RGBA{R: 255, A: 255})
+				p5.Circle(float64(200+xOffset*i), float64(50+yOffset*j), neuronRadius)
+			}
+		}
+	}
+
+	for i := 0; i < nn.outputs; i++ {
+		p5.StrokeWidth(2)
+		p5.Fill(color.RGBA{R: 255, A: 255})
+		p5.Circle(float64(200+xOffset*len(nn.hiddenLayers)), float64(50+yOffset*i), neuronRadius)
 	}
 }

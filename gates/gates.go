@@ -13,44 +13,76 @@ var and_data = [][]float64{{0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1}}
 
 var nand_data = [][]float64{{0, 0, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 0}}
 
-func OrGate() {
-	gate(or_data)
+func OrGate(derivative bool) {
+	gate(or_data, derivative)
 }
 
-func AndGate() {
-	gate(and_data)
+func AndGate(derivative bool) {
+	gate(and_data, derivative)
 }
 
-func NandGate() {
-	gate(nand_data)
+func NandGate(derivative bool) {
+	gate(nand_data, derivative)
 }
 
-func gate(data [][]float64) {
+func gate(data [][]float64, derivative bool) {
 	w1 := rand.Float64()
 	w2 := rand.Float64()
 	b := rand.Float64()
 
-	eps := 1e-3
-	lr := 1e-1
+	if derivative {
+		for i := 0; i < 1000; i++ {
+			dc := gcost_gate(data, w1, w2, b)
 
-	for i := 0; i < 10000; i++ {
-		c := cost_gate(data, w1, w2, b)
+			w1 -= dc[0]
+			w2 -= dc[1]
+			b -= dc[2]
 
-		dw1 := (cost_gate(data, w1+eps, w2, b) - c) / eps
-		dw2 := (cost_gate(data, w1, w2+eps, b) - c) / eps
-		db := (cost_gate(data, w1, w2, b+eps) - c) / eps
+			fmt.Printf("w1 %f | w2 %f | bias %f | cost %f \n", w1, w2, b, cost_gate(data, w1, w2, b))
+		}
+	} else {
+		eps := 1e-3
+		lr := 1e-1
 
-		w1 -= lr * dw1
-		w2 -= lr * dw2
-		b -= lr * db
-		fmt.Printf("w1 %f | w2 %f | bias %f | cost %f \n", w1, w2, b, cost_gate(data, w1, w2, b))
+		for i := 0; i < 1000; i++ {
+			c := cost_gate(data, w1, w2, b)
+
+			dw1 := (cost_gate(data, w1+eps, w2, b) - c) / eps
+			dw2 := (cost_gate(data, w1, w2+eps, b) - c) / eps
+			db := (cost_gate(data, w1, w2, b+eps) - c) / eps
+
+			w1 -= lr * dw1
+			w2 -= lr * dw2
+			b -= lr * db
+			fmt.Printf("w1 %f | w2 %f | bias %f | cost %f \n", w1, w2, b, cost_gate(data, w1, w2, b))
+		}
 	}
-
 	fmt.Println("----------FINAL RESULTS-----------")
 
 	for _, d := range data {
 		fmt.Printf("  %f  |  %f  |  %f\n", d[0], d[1], activation.Sigmoid(d[0]*w1+d[1]*w2+b))
 	}
+}
+
+func gcost_gate(data [][]float64, w1 float64, w2 float64, b float64) []float64 {
+	cost := make([]float64, 3)
+
+	for _, d := range data {
+		x1 := d[0]
+		x2 := d[1]
+		z := d[2]
+		a := activation.Sigmoid(x1*w1 + x2*w2 + b)
+
+		cost[0] += 2 * (a - z) * a * (1 - a) * x1
+		cost[1] += 2 * (a - z) * a * (1 - a) * x2
+		cost[2] += 2 * (a - z) * a * (1 - a)
+	}
+
+	for i := range cost {
+		cost[i] /= float64(len(data))
+	}
+
+	return cost
 }
 
 func cost_gate(data [][]float64, w1 float64, w2 float64, b float64) float64 {
